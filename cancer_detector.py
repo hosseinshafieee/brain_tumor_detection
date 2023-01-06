@@ -4,7 +4,7 @@ import tensorflow as tf
 CATEGORIES = ["cancer", "healthy"]
  
 def prepare(filepaht):
-    IMG_SIZE = 100
+    IMG_SIZE = 128
     image_array = cv2.imread(filepaht, cv2.IMREAD_GRAYSCALE)
     new_array = cv2.resize(image_array, (IMG_SIZE, IMG_SIZE))
     return new_array.reshape(-1, IMG_SIZE, IMG_SIZE, 1) 
@@ -16,8 +16,9 @@ test_image_path = [
     './random_test_images/cancer2.webp',
     './random_test_images/healthy1.jpeg',
     './random_test_images/healthy2.jpeg',
-    './random_test_images/healthy3.webp',
+    './random_test_images/healthy3.jpeg',
+    './random_test_images/Y2.jpg',
 ]
-prediction= model.predict([prepare(test_image_path[2])])
+prediction= model.predict([prepare(test_image_path[4])])
 
 print(CATEGORIES[int(prediction[0][0])])
