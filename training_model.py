@@ -6,12 +6,18 @@ import random
 import tensorflow as tf 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Activation, Flatten, Conv2D, MaxPooling2D, BatchNormalization, Conv2DTranspose, Conv1D
+from ann_visualizer.visualize import ann_viz
+import os
+from dotenv import load_dotenv
 
-DATADIR = "./training_dataset"
+load_dotenv()
+
+DATADIR = os.environ.get('TRAINING_DATA')
 
 CATEGORIES = ["cancer", "healthy"]
+training_length= []
 
-IMG_SIZE = 128
+IMG_SIZE = 100
 training_data = []
 
 def rotate_image(image, angle):
@@ -27,17 +33,18 @@ def flip_image(image, type):
 def create_training_data():
     for category in CATEGORIES:
         path = os.path.join(DATADIR, category)
+        training_length.append(len(os.listdir(path)))
         class_num  = CATEGORIES.index(category) 
         for img in os.listdir(path):
             try: 
                 image_array  = cv2.imread(os.path.join(path, img), cv2.IMREAD_GRAYSCALE)
                 new_array = cv2.resize(image_array, (IMG_SIZE, IMG_SIZE))
                 angle = 90
+                training_data.append([new_array, class_num])
                 for i in range(1, 5): 
                     rotated_image = rotate_image(new_array, angle * i)
                     training_data.append([rotated_image, class_num])
                     for j in range(-1, 2): 
-                        print(j)
                         training_data.append([flip_image(rotated_image, j), class_num])
                     
             except Exception as e:
@@ -62,34 +69,33 @@ y = np.array(y)
 x = X / 255.0
 
 model = Sequential() 
-print(x.shape[1:])
 model.add(Conv2D(32, (3, 3),  input_shape = x.shape[1:]))
-
 model.add(MaxPooling2D((2, 2)))
 model.add(Conv2D(64, (3, 3), activation='relu'))
 model.add(MaxPooling2D((2, 2)))
 model.add(Conv2D(64, (3, 3), activation='relu'))
 
 model.add(Flatten())
+model.add(Dense(128))
 model.add(Dense(64))
-model.add(Activation("relu"))
+model.add(Dense(32))
 model.add(Dense(10))
-model.add(Activation("relu"))
-
 model.add(Dense(1))
 model.add(Activation("sigmoid"))
 
 model.summary()
 
+ann_viz(model, view=True, filename="Architecture", title="Architecture")
+
+epochs = 10
+validationSplit = 0.25
 
 model.compile(optimizer=tf.keras.optimizers.Adam() ,loss=tf.keras.losses.BinaryCrossentropy(),  metrics=[tf.keras.metrics.BinaryAccuracy(), tf.keras.metrics.FalseNegatives()])
-history = model.fit(x, y, epochs=5, validation_split=0.25)
-from ann_visualizer.visualize import ann_viz
+history = model.fit(x, y, epochs=epochs, validation_split=validationSplit)
 
-ann_viz(model, view=True, filename="sdfg", title="sdfgs")
 
 def create_testing_data():
-    DATADIR = "./../../datasets/archive/Training"
+    DATADIR = os.getenv('TEST_DATA', None)
     testing_data = []
 
     for category in CATEGORIES:
@@ -100,8 +106,6 @@ def create_testing_data():
                 image_array  = cv2.imread(os.path.join(path, img), cv2.IMREAD_GRAYSCALE)
                 new_array = cv2.resize(image_array, (IMG_SIZE, IMG_SIZE))
                 testing_data.append([new_array, class_num])
-                # plt.imshow(new_array)
-                # plt.show()
             except Exception as e:
                 pass
     x = []
